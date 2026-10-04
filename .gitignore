@@ -1,0 +1,3 @@
+rust-server/target/
+go-server/server
+charts.json
