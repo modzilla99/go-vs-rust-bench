@@ -3,7 +3,6 @@ module bench/goserver
 go 1.27.1
 
 require (
-	github.com/goccy/go-json v0.11.2
 	github.com/jackc/pgx/v5 v5.11.0
 )
 

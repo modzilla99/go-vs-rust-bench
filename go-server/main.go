@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"log"
 	"math/rand/v2"
 	"net/http"
 	"os"
-	"strconv"
 
-	gojson "github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -17,14 +15,13 @@ import (
 const pageQuery = `SELECT id, name, email, active, tags FROM users WHERE id > $1 ORDER BY id LIMIT 50`
 
 // writeJSON sends the body with a Content-Length (no chunked encoding), like axum's Json does.
-func writeJSON(w http.ResponseWriter, body []byte, err error) {
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+func writeJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-	w.Write(body)
+
+	err := json.MarshalWrite(w, data)
+	if err != nil {
+		log.Printf("encountered error, returning json to client: %v\n", err)
+	}
 }
 
 // staticTags is shared by every in-memory user, so that handler allocates no per-user slices (like Rust's &'static).
@@ -49,8 +46,7 @@ func users(w http.ResponseWriter, r *http.Request) {
 			Tags:   staticTags,
 		}
 	}
-	body, err := json.Marshal(list)
-	writeJSON(w, body, err)
+	writeJSON(w, list)
 }
 
 func usersDB(pool *pgxpool.Pool) http.HandlerFunc {
@@ -67,8 +63,7 @@ func usersDB(pool *pgxpool.Pool) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		body, err := json.Marshal(list)
-		writeJSON(w, body, err)
+		writeJSON(w, list)
 	}
 }
 
@@ -98,8 +93,7 @@ func usersScan(pool *pgxpool.Pool) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		body, err := gojson.Marshal(list)
-		writeJSON(w, body, err)
+		writeJSON(w, list)
 	}
 }
 
